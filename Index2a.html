@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="color-scheme" content="light dark">
+    <title>Brotberechnung</title>
+    <style>
+        :root {
+            --bg: #f4efe6;
+            --card: #fffdf9;
+            --ink: #2a2017;
+            --muted: #8c7b69;
+            --line: #eadfce;
+            --accent: #b4621a;
+            --accent-soft: #f6e6d2;
+            --water: #2f7899;
+            --water-soft: #dfeef5;
+            --shadow: 0 1px 2px rgba(60, 40, 15, .06), 0 6px 18px rgba(60, 40, 15, .07);
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg: #17120d;
+                --card: #231c15;
+                --ink: #f3e9dc;
+                --muted: #a8977f;
+                --line: #3a2f24;
+                --accent: #e69a55;
+                --accent-soft: #3b2a1a;
+                --water: #6bb6d6;
+                --water-soft: #1c2d36;
+                --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 6px 18px rgba(0, 0, 0, .35);
+            }
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        html, body { height: 100%; }
+
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", Arial, sans-serif;
+            background: var(--bg);
+            color: var(--ink);
+            height: 100vh;
+            height: 100dvh;
+            overflow: hidden;
+            padding: max(14px, env(safe-area-inset-top)) max(18px, env(safe-area-inset-right)) max(14px, env(safe-area-inset-bottom)) max(18px, env(safe-area-inset-left));
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            -webkit-text-size-adjust: 100%;
+        }
+
+        header {
+            display: flex;
+            align-items: baseline;
+            gap: 10px;
+            flex: 0 0 auto;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: clamp(22px, 3.6vh, 30px);
+            font-weight: 750;
+            letter-spacing: -.02em;
+        }
+
+        .badge {
+            font-size: 12px;
+            font-weight: 650;
+            color: var(--accent);
+            background: var(--accent-soft);
+            padding: 3px 9px;
+            border-radius: 99px;
+        }
+
+        main {
+            flex: 1 1 auto;
+            min-height: 0;
+            display: grid;
+            grid-template-columns: minmax(250px, 30%) 1fr;
+            gap: 14px;
+        }
+
+        .card {
+            background: var(--card);
+            border-radius: 22px;
+            box-shadow: var(--shadow);
+            padding: clamp(12px, 2.2vh, 20px) clamp(14px, 2.2vw, 22px);
+            min-height: 0;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .card h2 {
+            margin: 0 0 clamp(6px, 1.2vh, 12px);
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: .09em;
+            text-transform: uppercase;
+            color: var(--muted);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .card h2::before {
+            content: "";
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            background: var(--accent);
+        }
+        .card.water h2::before { background: var(--water); }
+
+        /* ---------- Eingaben ---------- */
+        .inputs {
+            justify-content: space-evenly;
+            gap: 10px;
+        }
+
+        .field { display: flex; flex-direction: column; gap: 8px; }
+
+        .field label {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--muted);
+        }
+
+        .control {
+            position: relative;
+            display: flex;
+            align-items: center;
+            background: var(--accent-soft);
+            border-radius: 16px;
+            border: 2px solid transparent;
+            transition: border-color .15s, background .15s;
+        }
+
+        .control:focus-within { border-color: var(--accent); }
+
+        .control input,
+        .control select {
+            width: 100%;
+            border: 0;
+            outline: 0;
+            background: transparent;
+            color: var(--ink);
+            font: inherit;
+            font-size: clamp(22px, 4vh, 30px);
+            font-weight: 700;
+            font-variant-numeric: tabular-nums;
+            padding: clamp(10px, 1.8vh, 16px) 16px;
+            -webkit-appearance: none;
+            appearance: none;
+            border-radius: 16px;
+            min-width: 0;
+        }
+
+        .control input::placeholder { color: var(--muted); opacity: .55; font-weight: 600; }
+
+        .control .unit {
+            position: absolute;
+            right: 16px;
+            pointer-events: none;
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--muted);
+        }
+
+        .control.sel::after {
+            content: "";
+            position: absolute;
+            right: 18px;
+            width: 9px; height: 9px;
+            border-right: 3px solid var(--accent);
+            border-bottom: 3px solid var(--accent);
+            transform: translateY(-3px) rotate(45deg);
+            pointer-events: none;
+        }
+
+        /* ---------- Ergebnisse ---------- */
+        .results {
+            display: grid;
+            grid-template-rows: minmax(0, 1.25fr) minmax(0, 1fr);
+            gap: 14px;
+            min-height: 0;
+            min-width: 0;
+        }
+
+        .bottom {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+            min-height: 0;
+        }
+
+        .st-body {
+            flex: 1;
+            min-height: 0;
+            display: grid;
+            grid-template-columns: minmax(150px, 34%) 1fr;
+            gap: clamp(12px, 2vw, 24px);
+        }
+
+        .tiles {
+            display: grid;
+            grid-template-rows: 1fr 1fr;
+            gap: 10px;
+            min-height: 0;
+        }
+
+        .tile {
+            background: var(--accent-soft);
+            border-radius: 16px;
+            padding: 10px 14px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            min-height: 0;
+        }
+
+        .stages {
+            display: grid;
+            grid-template-columns: auto 1fr 1fr;
+            grid-template-rows: auto repeat(3, 1fr);
+            column-gap: clamp(10px, 2vw, 22px);
+            align-items: center;
+            min-height: 0;
+        }
+
+        .stages .th {
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+            padding-bottom: 6px;
+        }
+        .stages .th.mehl  { color: var(--accent); }
+        .stages .th.wasser { color: var(--water); }
+
+        .stages .stufe {
+            font-size: clamp(15px, 2.2vh, 19px);
+            font-weight: 650;
+            color: var(--muted);
+            white-space: nowrap;
+        }
+
+        .stages .cell {
+            border-top: 1px solid var(--line);
+            height: 100%;
+            display: flex;
+            align-items: center;
+        }
+        .stages .stufe { border-top: 1px solid var(--line); height: 100%; display: flex; align-items: center; }
+
+        .label {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--muted);
+            line-height: 1.2;
+        }
+
+        .num {
+            font-variant-numeric: tabular-nums;
+            font-weight: 750;
+            letter-spacing: -.02em;
+            white-space: nowrap;
+        }
+
+        .num .result-value { font-size: clamp(24px, 4.6vh, 40px); }
+        .num .u { font-size: 15px; font-weight: 600; color: var(--muted); margin-left: 4px; letter-spacing: 0; }
+
+        .cell .num .result-value { font-size: clamp(22px, 4vh, 34px); }
+        .cell.w .num { color: var(--water); }
+
+        .rows {
+            flex: 1;
+            min-height: 0;
+            display: grid;
+            grid-template-rows: repeat(3, 1fr);
+        }
+
+        .row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            border-top: 1px solid var(--line);
+        }
+        .row:first-child { border-top: 0; }
+        .row .label { font-size: clamp(15px, 2.2vh, 18px); }
+        .row .num .result-value { font-size: clamp(22px, 4vh, 34px); }
+
+        .water .row.is-water .num { color: var(--water); }
+
+        /* ---------- Hochformat / kleine Bildschirme: scrollen erlaubt ---------- */
+        @media (orientation: portrait), (max-width: 760px) {
+            body { height: auto; min-height: 100dvh; overflow: auto; }
+            main { grid-template-columns: 1fr; }
+            .results { grid-template-rows: auto auto; }
+            .bottom { grid-template-columns: 1fr; }
+            .st-body { grid-template-columns: 1fr; }
+            .tiles { grid-template-rows: auto; grid-template-columns: 1fr 1fr; }
+            .stages .cell, .stages .stufe { padding: 8px 0; }
+            .rows .row { padding: 10px 0; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Brotberechnung</h1>
+        <span class="badge">v3</span>
+    </header>
+
+    <main>
+        <!-- Eingaben -->
+        <section class="card inputs">
+            <h2>Eingaben</h2>
+
+            <div class="field">
+                <label for="mehlmenge">Mehlmenge</label>
+                <div class="control">
+                    <input type="number" id="mehlmenge" inputmode="decimal" placeholder="0" oninput="calculate()">
+                    <span class="unit">g</span>
+                </div>
+            </div>
+
+            <div class="field">
+                <label for="versaeuerung">Versäuerung</label>
+                <div class="control sel">
+                    <select id="versaeuerung" onchange="calculate()"></select>
+                </div>
+            </div>
+
+            <div class="field">
+                <label for="ta">HT-Teigausbeute</label>
+                <div class="control sel">
+                    <select id="ta" onchange="calculate()"></select>
+                </div>
+            </div>
+        </section>
+
+        <!-- Ergebnisse -->
+        <div class="results">
+            <section class="card">
+                <h2>Sauerteig</h2>
+                <div class="st-body">
+                    <div class="tiles">
+                        <div class="tile">
+                            <span class="label">ST-Anstellgut</span>
+                            <span class="num"><span id="st-anstellgut" class="result-value">0</span><span class="u">g</span></span>
+                        </div>
+                        <div class="tile">
+                            <span class="label">ST-Mehl gesamt</span>
+                            <span class="num"><span id="st-mehl-gesamt" class="result-value">0</span><span class="u">g</span></span>
+                        </div>
+                    </div>
+
+                    <div class="stages">
+                        <span></span>
+                        <span class="th mehl">Mehl</span>
+                        <span class="th wasser">Wasser</span>
+
+                        <span class="stufe">Stufe 1</span>
+                        <span class="cell"><span class="num"><span id="st-mehl-1" class="result-value">0</span><span class="u">g</span></span></span>
+                        <span class="cell w"><span class="num"><span id="st-wasser-1" class="result-value">0</span><span class="u">g</span></span></span>
+
+                        <span class="stufe">Stufe 2</span>
+                        <span class="cell"><span class="num"><span id="st-mehl-2" class="result-value">0</span><span class="u">g</span></span></span>
+                        <span class="cell w"><span class="num"><span id="st-wasser-2" class="result-value">0</span><span class="u">g</span></span></span>
+
+                        <span class="stufe">Stufe 3</span>
+                        <span class="cell"><span class="num"><span id="st-mehl-3" class="result-value">0</span><span class="u">g</span></span></span>
+                        <span class="cell w"><span class="num"><span id="st-wasser-3" class="result-value">0</span><span class="u">g</span></span></span>
+                    </div>
+                </div>
+            </section>
+
+            <div class="bottom">
+                <section class="card water">
+                    <h2>Hauptteig</h2>
+                    <div class="rows">
+                        <div class="row">
+                            <span class="label">HT-Mehl</span>
+                            <span class="num"><span id="ht-mehl" class="result-value">0</span><span class="u">g</span></span>
+                        </div>
+                        <div class="row is-water">
+                            <span class="label">HT-Wasser</span>
+                            <span class="num"><span id="ht-wasser" class="result-value">0</span><span class="u">g</span></span>
+                        </div>
+                        <div class="row">
+                            <span class="label">HT-Salz</span>
+                            <span class="num"><span id="ht-salz" class="result-value">0</span><span class="u">g</span></span>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="card">
+                    <h2>Gesamt</h2>
+                    <div class="rows">
+                        <div class="row">
+                            <span class="label">Gesamt-TA</span>
+                            <span class="num"><span id="gesamt-ta" class="result-value">0</span></span>
+                        </div>
+                        <div class="row">
+                            <span class="label">Gesamt-Teig</span>
+                            <span class="num"><span id="gesamt-teig" class="result-value">0</span><span class="u">g</span></span>
+                        </div>
+                        <div class="row">
+                            <span class="label">Gesamt-ST</span>
+                            <span class="num"><span id="gesamt-ST" class="result-value">0</span><span class="u">g</span></span>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Auswahlfelder befüllen (unverändert: Versäuerung 20–80 in 5er-Schritten, Standard 40;
+        // Teigausbeute 150–200 in 5er-Schritten, Standard 185)
+        (function () {
+            const v = document.getElementById('versaeuerung');
+            for (let i = 20; i <= 80; i += 5) {
+                v.insertAdjacentHTML('beforeend', `<option value="${i}" ${i === 40 ? 'selected' : ''}>${i} %</option>`);
+            }
+            const t = document.getElementById('ta');
+            for (let i = 150; i <= 200; i += 5) {
+                t.insertAdjacentHTML('beforeend', `<option value="${i}" ${i === 185 ? 'selected' : ''}>${i}</option>`);
+            }
+        })();
+
+        function calculate() {
+            const mehlmenge = parseFloat(document.getElementById('mehlmenge').value) || 0;
+            const versaeuerung = parseFloat(document.getElementById('versaeuerung').value) || 35;
+            const ta = parseFloat(document.getElementById('ta').value) || 180;
+
+            // Berechnungen
+            const stMehlGesamt = mehlmenge * versaeuerung / 100;
+            const stAnstellgut = stMehlGesamt * 5/430;
+            const stMehl1 = stMehlGesamt * 21/430;
+            const stWasser1 = stMehlGesamt * 32/430;
+            const stMehl2 = stMehlGesamt * 156/430;
+            const stWasser2 = stMehlGesamt * 92/430;
+            const stMehl3 = stMehlGesamt * 250/430;
+            const stWasser3 = stMehlGesamt * 304/430;
+            const htMehl = mehlmenge * (1 - versaeuerung / 100);
+            const htWasser = (ta - 100)/100 * htMehl;
+            const htSalz = mehlmenge * 0.02;
+            const gesamtTa = (mehlmenge + stMehlGesamt + htWasser) / mehlmenge * 100;
+            const gesamtTeig = (stMehlGesamt * 2) + htMehl + htWasser + htSalz;
+            const gesamtST = (stMehlGesamt * 2);
+
+            // Ergebnisse anzeigen
+            document.getElementById('st-anstellgut').textContent = stAnstellgut.toFixed(1);
+            document.getElementById('st-mehl-gesamt').textContent = stMehlGesamt.toFixed(1);
+            document.getElementById('st-mehl-1').textContent = stMehl1.toFixed(1);
+            document.getElementById('st-wasser-1').textContent = stWasser1.toFixed(1);
+            document.getElementById('st-mehl-2').textContent = stMehl2.toFixed(1);
+            document.getElementById('st-wasser-2').textContent = stWasser2.toFixed(1);
+            document.getElementById('st-mehl-3').textContent = stMehl3.toFixed(1);
+            document.getElementById('st-wasser-3').textContent = stWasser3.toFixed(1);
+            document.getElementById('ht-mehl').textContent = Math.round(htMehl);
+            document.getElementById('ht-wasser').textContent = Math.round(htWasser);
+            document.getElementById('ht-salz').textContent = htSalz.toFixed(1);
+            document.getElementById('gesamt-ta').textContent = Math.round(gesamtTa);
+            document.getElementById('gesamt-teig').textContent = Math.round(gesamtTeig);
+            document.getElementById('gesamt-ST').textContent = Math.round(gesamtST);
+        }
+
+        // Initial calculation
+        calculate();
+    </script>
+</body>
+</html>
