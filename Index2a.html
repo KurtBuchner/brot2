@@ -201,8 +201,8 @@
             flex: 1;
             min-height: 0;
             display: grid;
-            grid-template-columns: minmax(150px, 34%) 1fr;
-            gap: clamp(12px, 2vw, 24px);
+            grid-template-columns: minmax(140px, 26%) 1fr;
+            gap: clamp(12px, 1.8vw, 22px);
         }
 
         .tiles {
@@ -224,9 +224,9 @@
 
         .stages {
             display: grid;
-            grid-template-columns: auto 1fr 1fr;
+            grid-template-columns: auto 1fr 1fr 1fr;
             grid-template-rows: auto repeat(3, 1fr);
-            column-gap: clamp(10px, 2vw, 22px);
+            column-gap: clamp(8px, 1.4vw, 16px);
             align-items: center;
             min-height: 0;
         }
@@ -240,6 +240,9 @@
         }
         .stages .th.mehl  { color: var(--accent); }
         .stages .th.wasser { color: var(--water); }
+        .stages .th.gesamt { color: var(--ink); }
+        .cell.t .num { color: var(--ink); }
+        .cell.t .num .result-value { font-weight: 800; }
 
         .stages .stufe {
             font-size: clamp(15px, 2.2vh, 19px);
@@ -331,14 +334,40 @@
             <div class="field">
                 <label for="versaeuerung">Versäuerung</label>
                 <div class="control sel">
-                    <select id="versaeuerung" onchange="calculate()"></select>
+                    <select id="versaeuerung" onchange="calculate()">
+                        <option value="20">20 %</option>
+                        <option value="25">25 %</option>
+                        <option value="30">30 %</option>
+                        <option value="35">35 %</option>
+                        <option value="40" selected>40 %</option>
+                        <option value="45">45 %</option>
+                        <option value="50">50 %</option>
+                        <option value="55">55 %</option>
+                        <option value="60">60 %</option>
+                        <option value="65">65 %</option>
+                        <option value="70">70 %</option>
+                        <option value="75">75 %</option>
+                        <option value="80">80 %</option>
+                    </select>
                 </div>
             </div>
 
             <div class="field">
                 <label for="ta">HT-Teigausbeute</label>
                 <div class="control sel">
-                    <select id="ta" onchange="calculate()"></select>
+                    <select id="ta" onchange="calculate()">
+                        <option value="150">150</option>
+                        <option value="155">155</option>
+                        <option value="160">160</option>
+                        <option value="165">165</option>
+                        <option value="170">170</option>
+                        <option value="175">175</option>
+                        <option value="180">180</option>
+                        <option value="185" selected>185</option>
+                        <option value="190">190</option>
+                        <option value="195">195</option>
+                        <option value="200">200</option>
+                    </select>
                 </div>
             </div>
         </section>
@@ -363,18 +392,22 @@
                         <span></span>
                         <span class="th mehl">Mehl</span>
                         <span class="th wasser">Wasser</span>
+                        <span class="th gesamt">Gesamt</span>
 
                         <span class="stufe">Stufe 1</span>
                         <span class="cell"><span class="num"><span id="st-mehl-1" class="result-value">0</span><span class="u">g</span></span></span>
                         <span class="cell w"><span class="num"><span id="st-wasser-1" class="result-value">0</span><span class="u">g</span></span></span>
+                        <span class="cell t"><span class="num"><span id="st-gesamt-1" class="result-value">0</span><span class="u">g</span></span></span>
 
                         <span class="stufe">Stufe 2</span>
                         <span class="cell"><span class="num"><span id="st-mehl-2" class="result-value">0</span><span class="u">g</span></span></span>
                         <span class="cell w"><span class="num"><span id="st-wasser-2" class="result-value">0</span><span class="u">g</span></span></span>
+                        <span class="cell t"><span class="num"><span id="st-gesamt-2" class="result-value">0</span><span class="u">g</span></span></span>
 
                         <span class="stufe">Stufe 3</span>
                         <span class="cell"><span class="num"><span id="st-mehl-3" class="result-value">0</span><span class="u">g</span></span></span>
                         <span class="cell w"><span class="num"><span id="st-wasser-3" class="result-value">0</span><span class="u">g</span></span></span>
+                        <span class="cell t"><span class="num"><span id="st-gesamt-3" class="result-value">0</span><span class="u">g</span></span></span>
                     </div>
                 </div>
             </section>
@@ -420,19 +453,6 @@
     </main>
 
     <script>
-        // Auswahlfelder befüllen (unverändert: Versäuerung 20–80 in 5er-Schritten, Standard 40;
-        // Teigausbeute 150–200 in 5er-Schritten, Standard 185)
-        (function () {
-            const v = document.getElementById('versaeuerung');
-            for (let i = 20; i <= 80; i += 5) {
-                v.insertAdjacentHTML('beforeend', `<option value="${i}" ${i === 40 ? 'selected' : ''}>${i} %</option>`);
-            }
-            const t = document.getElementById('ta');
-            for (let i = 150; i <= 200; i += 5) {
-                t.insertAdjacentHTML('beforeend', `<option value="${i}" ${i === 185 ? 'selected' : ''}>${i}</option>`);
-            }
-        })();
-
         function calculate() {
             const mehlmenge = parseFloat(document.getElementById('mehlmenge').value) || 0;
             const versaeuerung = parseFloat(document.getElementById('versaeuerung').value) || 35;
@@ -447,6 +467,10 @@
             const stWasser2 = stMehlGesamt * 92/430;
             const stMehl3 = stMehlGesamt * 250/430;
             const stWasser3 = stMehlGesamt * 304/430;
+            // Gesamtgewicht je Stufe (aufbauend)
+            const stGesamt1 = stAnstellgut + stMehl1 + stWasser1;
+            const stGesamt2 = stGesamt1 + stMehl2 + stWasser2;
+            const stGesamt3 = stGesamt2 + stMehl3 + stWasser3;
             const htMehl = mehlmenge * (1 - versaeuerung / 100);
             const htWasser = (ta - 100)/100 * htMehl;
             const htSalz = mehlmenge * 0.02;
@@ -463,6 +487,9 @@
             document.getElementById('st-wasser-2').textContent = stWasser2.toFixed(1);
             document.getElementById('st-mehl-3').textContent = stMehl3.toFixed(1);
             document.getElementById('st-wasser-3').textContent = stWasser3.toFixed(1);
+            document.getElementById('st-gesamt-1').textContent = stGesamt1.toFixed(1);
+            document.getElementById('st-gesamt-2').textContent = stGesamt2.toFixed(1);
+            document.getElementById('st-gesamt-3').textContent = stGesamt3.toFixed(1);
             document.getElementById('ht-mehl').textContent = Math.round(htMehl);
             document.getElementById('ht-wasser').textContent = Math.round(htWasser);
             document.getElementById('ht-salz').textContent = htSalz.toFixed(1);
